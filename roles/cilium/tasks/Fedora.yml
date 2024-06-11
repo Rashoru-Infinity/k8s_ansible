@@ -1,0 +1,6 @@
+- name: install helm and bind-utils
+  dnf:
+    name:
+      - helm
+      - bind-utils
+    state: present

@@ -1,0 +1,10 @@
+- hosts: all
+  remote_user: fedora
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - cluster-variables.yml
+  tasks:
+  - name: setup node
+    include_role:
+      name: node

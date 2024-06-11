@@ -1,0 +1,109 @@
+---
+# tasks file for node
+- name: setup node
+  include_tasks:
+    file: "{{ ansible_distribution }}.yml"
+- name: load br_netfilter
+  modprobe:
+    name: br_netfilter
+- name: enable ipv4 forward
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: true
+- name: make EXECUTABLE_DIR
+  file:
+    path: '{{ EXECUTABLE_DIR }}'
+    state: directory
+    mode: '0644'
+- name: get cni plugins
+  unarchive:
+    src: https://github.com/containernetworking/plugins/releases/download/{{ CNI_PLUGINS_VERSION }}/cni-plugins-linux-{{ ARCH }}-{{ CNI_PLUGINS_VERSION }}.tgz
+    dest: '{{ EXECUTABLE_DIR }}'
+    remote_src: yes
+- name: get crictl plugins
+  unarchive:
+    src: https://github.com/kubernetes-sigs/cri-tools/releases/download/{{ CRICTL_VERSION }}/crictl-{{ CRICTL_VERSION }}-linux-{{ ARCH }}.tar.gz
+    dest: '{{ EXECUTABLE_DIR }}'
+    remote_src: yes
+- name: check k8s_release
+  shell: |
+    curl -sSL https://dl.k8s.io/release/stable.txt
+  register: k8s_release
+  changed_when: false
+- name: get kubeadm
+  get_url:
+    url: https://dl.k8s.io/release/{{ k8s_release.stdout }}/bin/linux/{{ ARCH }}/kubeadm
+    dest: '{{ EXECUTABLE_DIR }}'
+    mode: '0755'
+- name: get kubelet
+  get_url:
+    url: https://dl.k8s.io/release/{{ k8s_release.stdout }}/bin/linux/{{ ARCH }}/kubelet
+    dest: '{{ EXECUTABLE_DIR }}'
+    mode: '0755'
+- name: stat kubelet.service
+  stat: path=/etc/systemd/system/kubelet.service
+  register: kubelet_service_stat
+  check_mode: false
+  changed_when: false
+- name: touch kubelet.service
+  when:
+    - not kubelet_service_stat.stat.exists
+  file:
+    path: /etc/systemd/system/kubelet.service
+    state: touch
+    mode: '0644'
+- name: stage kubelet.service
+  shell: |
+    curl -sSL "https://raw.githubusercontent.com/kubernetes/release/{{ SYSTEMD_SERVICE_TEMPLATE_VERSION }}/cmd/krel/templates/latest/kubelet/kubelet.service" | sed "s:/usr/bin:{{ EXECUTABLE_DIR }}:g" | tee /etc/systemd/system/kubelet.service.stage
+  changed_when: false
+- name: check diff kubelet.service
+  shell: |
+    diff /etc/systemd/system/kubelet.service /etc/systemd/system/kubelet.service.stage
+  register: kubelet_service_diff
+  changed_when: false
+  failed_when: false
+- name: update kubelet
+  when:
+    - kubelet_service_diff.stdout != ''
+  shell: |
+    mv /etc/systemd/system/kubelet.service.stage /etc/systemd/system/kubelet.service
+- name: stat kubeadm.conf
+  stat: path=/etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+  register: kubeadm_stat
+  check_mode: false
+  changed_when: false
+- name: mkdir for kubeadm.conf
+  when:
+    - not kubeadm_stat.stat.exists
+  file:
+    path: /etc/systemd/system/kubelet.service.d/
+    state: directory
+    mode: '0644'
+- name: touch kubeadm.conf
+  when:
+    - not kubeadm_stat.stat.exists
+  file:
+    path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    state: touch
+    mode: '0644'
+- name: stage kubeadm.conf
+  shell: |
+    curl -sSL "https://raw.githubusercontent.com/kubernetes/release/{{ SYSTEMD_SERVICE_TEMPLATE_VERSION }}/cmd/krel/templates/latest/kubeadm/10-kubeadm.conf" | sed "s:/usr/bin:{{ EXECUTABLE_DIR }}:g" | tee /etc/systemd/system/kubelet.service.d/10-kubeadm.conf.stage
+  changed_when: false
+- name: check diff kubeadm.conf
+  shell: |
+    diff /etc/systemd/system/kubelet.service.d/10-kubeadm.conf /etc/systemd/system/kubelet.service.d/10-kubeadm.conf.stage
+  register: kubeadm_conf_diff
+  changed_when: false
+  failed_when: false
+- name: update kubeadm.conf
+  when:
+    - kubeadm_conf_diff.stdout != ''
+  shell: |
+    mv /etc/systemd/system/kubelet.service.d/10-kubeadm.conf.stage /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+- name: start kubelet
+  systemd:
+    name: kubelet
+    state: started
+    enabled: yes

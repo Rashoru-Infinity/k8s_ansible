@@ -1,0 +1,4 @@
+---
+# tasks file for join-cluster
+- name: join cluster
+  shell: kubeadm join --token {{ join_token }} {{ API_SERVER_ENDPOINT }}:{{ API_SERVER_PORT }} --discovery-token-ca-cert-hash sha256:{{ pubkey_digest }}  

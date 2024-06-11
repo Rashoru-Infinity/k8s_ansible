@@ -1,0 +1,23 @@
+- hosts: control-plane
+  remote_user: fedora
+  become: yes
+  gather_facts: no
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  tasks:
+    - name: issue token
+      include_role:
+        name: issue-token
+      run_once: true
+- hosts: worker
+  remote_user: fedora
+  become: yes
+  gather_facts: no
+  vars_files:
+    - cluster-variables.yml
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  tasks:
+  - name: join cluster
+    include_role:
+      name: join-cluster

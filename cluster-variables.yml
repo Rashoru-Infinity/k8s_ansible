@@ -1,0 +1,3 @@
+API_SERVER_ENDPOINT: k8s-dev-cp00.k8s.provider.home
+API_SERVER_PORT: 6443
+POD_NW_CIDR: 10.20.0.0/16

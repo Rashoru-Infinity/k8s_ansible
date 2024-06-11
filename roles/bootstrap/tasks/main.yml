@@ -1,0 +1,13 @@
+---
+# tasks file for bootstrap
+- name: pull kubeadm config images
+  shell: |
+    kubeadm config images pull
+- name: kubeadm init
+  shell: |
+    kubeadm init --pod-network-cidr={{ POD_NW_CIDR }} --control-plane-endpoint={{ API_SERVER_ENDPOINT }} --skip-phases=addon/kube-proxy
+- name: fetch admin.conf
+  fetch:
+    src: /etc/kubernetes/admin.conf
+    dest: files/admin.conf
+    flat: yes

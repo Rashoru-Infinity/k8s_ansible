@@ -1,0 +1,21 @@
+---
+# tasks file for issue-token
+- name: create token
+  shell: kubeadm token create
+  register: token
+- name: check pubkey digest
+  shell: openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
+  register: digest
+  changed_when: false
+- name: delegate token
+  set_fact:
+    join_token: '{{ token.stdout }}'
+  delegate_to: '{{ item }}'
+  delegate_facts: true
+  with_items: "{{ groups['worker'] }}"
+- name: delegate pubkey_digest
+  set_fact:
+    pubkey_digest: '{{ digest.stdout }}'
+  delegate_to: '{{ item }}'
+  delegate_facts: true
+  with_items: "{{ groups['worker'] }}"

@@ -1,0 +1,12 @@
+- hosts: control-plane
+  remote_user: fedora
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - cluster-variables.yml
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  tasks:
+  - name: install cilium
+    include_role:
+      name: cilium

@@ -1,0 +1,30 @@
+---
+# tasks file for cilium
+- name: install packages
+  include_tasks:
+    file: "{{ ansible_distribution }}.yml"
+- name: helm add cilium repository
+  shell: helm repo add cilium https://helm.cilium.io
+  changed_when: false
+- name: resolve api server domain name
+  register: api_server_ip
+  shell: |
+    nslookup {{ API_SERVER_ENDPOINT }} | tail -2 | head -1 | awk '{print $2}'
+  changed_when: false
+- name: install cilium
+  shell: >
+    helm install cilium cilium/cilium
+    --version 1.15.0
+    --namespace kube-system
+    --set k8sServiceHost={{ api_server_ip.stdout }}
+    --set k8sServicePort={{ API_SERVER_PORT }}
+    --set debug.enabled=true
+    --set debug.verbose=flow
+    --set envoy.enabled=true
+    --set ingressController.enabled=true
+    --set ingressController.loadbalancerMode=dedicated
+    --set kubeProxyReplacement=true
+    --set l2announcements.enabled=true
+    --set loadBalancer.algorithm=maglev
+    --set maglev.tableSize=65521
+    --set maglev.hashSeed=$(head -c12 /dev/urandom | base64 -w0)

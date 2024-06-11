@@ -1,0 +1,10 @@
+- hosts: control-plane
+  remote_user: fedora
+  become: yes
+  gather_facts: no
+  vars_files:
+    - cluster-variables.yml
+  tasks:
+  - name: setup cluster
+    include_role:
+      name: bootstrap

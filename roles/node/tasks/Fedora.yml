@@ -1,0 +1,28 @@
+- name: check swap state
+  shell: swapon -v
+  register: swap_state
+  check_mode: false
+  changed_when: false
+- name: disable swap
+  when:
+    - swap_state.stdout != ''
+  shell: |
+    set -ex
+    systemctl stop dev-zram0.swap
+    systemctl mask dev-zram0.swap
+    swapoff -a
+- name: install necessary packages
+  dnf:
+    name:
+      - cri-o
+      - iptables
+      - conntrack
+      - ebtables
+      - ethtool
+      - iproute-tc
+    state: present
+- name: start cri-o
+  systemd:
+    name: crio
+    state: started
+    enabled: yes

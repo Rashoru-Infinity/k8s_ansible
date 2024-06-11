@@ -1,0 +1,5 @@
+[control-plane]
+k8s-dev-cp00.k8s.provider.home
+[worker]
+k8s-dev-worker00.k8s.provider.home
+k8s-dev-worker01.k8s.provider.home
