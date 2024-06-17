@@ -28,3 +28,6 @@
     --set loadBalancer.algorithm=maglev
     --set maglev.tableSize=65521
     --set maglev.hashSeed=$(head -c12 /dev/urandom | base64 -w0)
+    --set bpf.masquerade=true
+    --set hubble.relay.enabled=true
+    --set hubble.ui.enabled=true
